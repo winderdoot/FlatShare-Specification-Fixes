@@ -72,7 +72,7 @@ Dokument zawiera specyfikację wymagań funkcjonalnych oraz projekt architektury
 
 
 \subsection{Cel i ogólna koncepcja systemu}
-FlatShare adresuje typowy problem rynku najmu pokoi: duża liczba ogłoszeń, brak ustandaryzowanej informacji o preferencjach domowników oraz konieczność wielokrotnej, powtarzalnej komunikacji przed podjęciem decyzji o wynajmie. System ma zmniejszyć „tarcie” po obu stronach procesu:
+FlatShare odpowiada na typowy problem rynku najmu pokoi: duża liczba ogłoszeń, brak ustandaryzowanej informacji o preferencjach domowników oraz konieczność wielokrotnej, powtarzalnej komunikacji przed podjęciem decyzji o wynajmie. System ma zmniejszyć „tarcie” po obu stronach procesu:
 \begin{itemize}
     \item \textbf{Lokator} szybciej znajduje ogłoszenia pasujące do jego potrzeb (filtry + dopasowywanie) oraz ma bezpośredni kanał kontaktu z właścicielem.
     \item \textbf{Właściciel} publikuje ogłoszenia w spójnej formie, kontroluje dostępność i może akceptować rezerwacje lub włączyć tryb \textit{Instant Book}.
@@ -107,7 +107,6 @@ Poniżej przedstawiono wymagania biznesowe zagregowane według aktorów systemu.
 \begin{itemize}
     \item \textbf{US-L1:} Jako Lokator, chcę przeglądać i filtrować ogłoszenia (wg ceny, lokalizacji), aby szybko znaleźć pokój spełniający moje kryteria.
     \item \textbf{US-L2:} Jako Lokator, chcę zdefiniować swoje preferencje (np. zwierzęta, palenie), aby system mógł podpowiadać mi najlepiej dopasowane oferty.
-    \item \textbf{US-L3:} Jako Lokator, chcę wysłać wiadomość do właściciela, aby dopytać o szczegóły wynajmu.
     \item \textbf{US-L4:} Jako Lokator, chcę wysłać prośbę o rezerwację pokoju, aby sfinalizować proces wynajmu.
     \item \textbf{US-L5:} Jako Lokator, chcę opłacić rezerwację przez zewnętrzny system płatności, aby potwierdzić wynajem.
 \end{itemize}
@@ -153,13 +152,6 @@ z dalszym opisem modeli, stanów oraz komunikacji API.
     \item \textbf{AC1:} Lokator może zapisać zestaw preferencji (np. palenie, zwierzęta, budżet), a system przechowuje je w kontekście roli \texttt{TenantRole}.
     \item \textbf{AC2:} Endpoint dopasowań zwraca ogłoszenia posortowane malejąco po \textit{match score}.
     \item \textbf{AC3:} Jeśli preferencje nie są ustawione, system zwraca pustą listę (lub zgodnie z polityką --- \texttt{404 Not Found}).
-\end{itemize}
-
-\subsubsection{US-L3: Wysłanie wiadomości do właściciela}
-\begin{itemize}
-    \item \textbf{AC1:} Wiadomość jest zawsze zapisywana w kontekście \texttt{MessageThread} powiązanego z \texttt{Listing}.
-    \item \textbf{AC2:} System nie pozwala na kontakt, gdy ogłoszenie nie jest aktywne albo adresat ma status konta \texttt{BLOCKED}.
-    \item \textbf{AC3:} Adresat otrzymuje powiadomienie o nowej wiadomości (kanał zależny od implementacji, np. email/push).
 \end{itemize}
 
 \subsubsection{US-L4/US-W4: Rezerwacja i akceptacja/odrzucenie}
@@ -219,7 +211,7 @@ widok rekomendacji (\textit{matching}), który wykorzystuje preferencje Lokatora
 
 
 
-\subsection{Moduł Użytkownika i Komunikacji}
+\subsection{Moduł Użytkownika}
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.65\linewidth]{diagram_accounts_messaging.png}
@@ -227,7 +219,7 @@ widok rekomendacji (\textit{matching}), który wykorzystuje preferencje Lokatora
 \end{figure}
 
 
-\noindent\textbf{Opis modułu.} Moduł Użytkownika i Komunikacji łączy funkcje związane z kontem (\texttt{User}),
+\noindent\textbf{Opis modułu.} Moduł Użytkownika łączy funkcje związane z kontem (\texttt{User}),
 rolami oraz wymianą wiadomości pomiędzy Lokatorem i Właścicielem. Z perspektywy bezpieczeństwa
 to właśnie w tym obszarze powstaje token JWT wykorzystywany później przez pozostałe moduły.
 
@@ -239,8 +231,8 @@ czy użytkownik może korzystać z systemu (np. \texttt{BLOCKED} po moderacji).
 do wyliczenia rekomendacji. Ważne jest rozdzielenie danych „kontowych” od danych roli --- preferencje są przechowywane
 w \texttt{TenantRole}, co jest spójne z modelem domenowym.
 
-\noindent\textbf{Komunikacja i zgłoszenia:} wysyłanie wiadomości jest realizowane w kontekście ogłoszenia (wątek \texttt{MessageThread}
-powiązany z \texttt{Listing}). Dodatkowo zarówno Lokator, jak i Właściciel mogą zgłosić użytkownika lub ogłoszenie, co inicjuje
+\noindent\textbf{Zgłoszenia:} 
+Zarówno Lokator, jak i Właściciel mogą zgłosić użytkownika lub ogłoszenie, co inicjuje
 proces moderacyjny obsługiwany przez Administratora.
 
 
@@ -360,7 +352,7 @@ Projekt rozdziela modele danych (encje domenowe) od logiki (serwisy), zgodnie z 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{class_domain_core.png}
-    \caption{Diagram klas - model domenowy (User + Role, Listing, Apartment/Room, Booking, Payment, Messaging)}
+    \caption{Diagram klas - model domenowy (User + Role, Listing, Apartment/Room, Booking, Payment)}
 \end{figure}
 \paragraph{Uwaga projektowa (spójność domeny).}
 Rezerwacja (\texttt{Booking}) jest zawsze tworzona przez Lokatora (rola \texttt{TenantRole})
@@ -388,7 +380,7 @@ realizowana jest przez jawne interfejsy serwisów i porty integracyjne, co ogran
 
 \noindent\textbf{Kanały komunikacji:}
 \begin{itemize}
-    \item \textbf{Wywołania synchroniczne (in-process)} pomiędzy modułami, np. \texttt{MessagingService} pobiera właściciela ogłoszenia przez \texttt{ListingService}.
+    \item \textbf{Wywołania synchroniczne (in-process)} pomiędzy modułami, np.
     \item \textbf{Integracje zewnętrzne} poprzez porty, np. \texttt{IPaymentGateway} (płatności) oraz \texttt{INotificationPort} (powiadomienia).
 \end{itemize}
 
@@ -424,22 +416,11 @@ Zgodnie z wymaganiami projektowymi, system opiera się na obiektach domenowych o
         \item \texttt{Booking} reprezentuje proces rezerwacji i przechowuje status (np. \textit{PENDING\_APPROVAL, PENDING\_PAYMENT, CONFIRMED}).
         \item \texttt{Payment} przechowuje wynik integracji z bramką płatności (referencja dostawcy, status).
     \end{itemize}
-
-    \item \textbf{Komunikacja:}
-    \begin{itemize}
-        \item Zamiast pojedynczych wiadomości bez kontekstu, zastosowano \texttt{MessageThread} (wątek) oraz \texttt{Message} (wiadomość), co upraszcza utrzymanie historii rozmów i powiązanie z ogłoszeniem.
-    \end{itemize}
 \end{enumerate}
 \subsection{Wymiana informacji między modułami (Inter-module communication)}
 System realizuje komunikację między niezależnymi modułami poprzez warstwę serwisową i porty integracyjne (interfejsy), aby moduły nie były bezpośrednio ze sobą sprzężone.
 
 \begin{itemize}
-    \item \textbf{Moduł Komunikacji $\leftarrow$ Moduł Ogłoszeń}
-    \newline
-    Aby zrealizować przypadek użycia \textit{``Wysyłanie wiadomości''} w kontekście konkretnego ogłoszenia, moduł komunikacji musi ustalić adresata.
-    \newline
-    \textit{Wymagana interakcja:} \texttt{MessagingService} wywołuje \texttt{ListingService.getOwnerId(listingId)} aby pobrać identyfikator właściciela.
-
     \item \textbf{Moduł Dopasowań $\leftarrow$ Moduł Użytkownika (Preferencje)}
     \newline
     Aby dopasować ogłoszenia do Lokatora, \texttt{MatchingService} potrzebuje preferencji Lokatora.
@@ -599,23 +580,6 @@ W systemie FlatShare kluczowe procesy dotyczą: publikacji ogłoszeń, rezerwacj
 
 \FloatBarrier
 
-\subsubsection{Funkcjonalność: Wysyłanie wiadomości w kontekście ogłoszenia}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{act_send_message.png}
-  \caption{Diagram aktywności: Wysyłanie wiadomości w kontekście ogłoszenia.}
-  \label{fig:act-send-message}
-\end{figure}
-
-\textbf{Opis:} Wysyłanie wiadomości jest kluczową funkcją wspierającą decyzję o wynajmie. Diagram pokazuje powiązanie komunikacji z \texttt{Listing} (adresat ustalany na podstawie właściciela ogłoszenia) oraz warunki brzegowe typu brak możliwości kontaktu.
-\begin{itemize}
-  \item \textbf{Główna ścieżka:} użytkownik tworzy treść $\rightarrow$ system pobiera właściciela ogłoszenia $\rightarrow$ zapisuje wiadomość w wątku $\rightarrow$ wysyła powiadomienie do adresata.
-  \item \textbf{Alternatywy:} brak adresata / konto zablokowane / ogłoszenie niedostępne (system przerywa i pokazuje komunikat).
-  \item \textbf{Efekt biznesowy:} utrzymanie historii rozmowy i kontekstu (wątek powiązany z \texttt{Listing}).
-\end{itemize}
-
-\FloatBarrier
-
 \subsubsection{Funkcjonalność: Blokada użytkownika (\texttt{Ban User})}
 \begin{figure}[H]
   \centering
@@ -667,7 +631,7 @@ aby uniknąć powielania tej logiki w dalszych scenariuszach biznesowych.
 \subsection{Konwencje zasobów REST i wersjonowanie}
 API projektowane jest zgodnie z podejściem \textit{resource-oriented}:
 \begin{itemize}
-    \item \textbf{Rzeczowniki w ścieżkach} (np. \texttt{/listings}, \texttt{/rentals}, \texttt{/messages}) reprezentują zasoby,
+    \item \textbf{Rzeczowniki w ścieżkach} (np. \texttt{/listings}, \texttt{/rentals}) reprezentują zasoby,
     \item \textbf{Czasowniki w metodach HTTP} (GET/POST/PATCH/DELETE) reprezentują operacje na zasobach,
     \item \textbf{Wersjonowanie w ścieżce} (\texttt{/api/v1}) umożliwia ewolucję interfejsu przy zachowaniu kompatybilności.
 \end{itemize}
@@ -685,10 +649,12 @@ Odpowiedzi błędów są ustandaryzowane, aby klient mógł automatycznie interp
 
 \subsection{Słownik typów danych wykorzystywanych w komunikatach}
 W tabeli poniżej zestawiono podstawowe typy danych wykorzystywane w komunikacji pomiędzy klientem a serwerem.
-\begin{longtable}{|p{4cm}|p{4cm}|p{7cm}|}
+
+\begin{longtable}{|p{3cm}|p{5cm}|p{7cm}|}
 \hline
 \textbf{Typ} & \textbf{Reprezentacja} & \textbf{Uwagi} \\ \hline
-UUID & \texttt{"550e8400-e29b-41d4-a716-446655440000"} & Identyfikatory zasobów (RFC~4122). \\ \hline
+UUID & \texttt{"550e8400-e29b-41d4
+-a716-446655440000"} & Identyfikatory zasobów (RFC~4122). \\ \hline
 Date & \texttt{"2024-11-01"} & Data w ISO~8601 (\texttt{YYYY-MM-DD}). \\ \hline
 DateTime (UTC) & \texttt{"2024-10-15T14:00:00Z"} & Znacznik czasu w ISO~8601 w UTC. \\ \hline
 Money & \texttt{amount + currency} & Kwota dziesiętna + kod waluty ISO~4217 (np. PLN). \\ \hline
@@ -1260,23 +1226,6 @@ oraz kontrolę reguł biznesowych (m.in. zakaz wynajmu własnych zasobów). Zast
 statusu pośredniego (\texttt{PENDING\_APPROVAL}) umożliwia dalszą obsługę procesu,
 np. akceptację przez wynajmującego.
 
-
-
-
-
-\section{Komunikacja pomiędzy użytkownikami (Wiadomości)}
-Poniższy rozdział opisuje wymianę wiadomości pomiędzy Lokatorem a Właścicielem w kontekście ogłoszenia.
-Z perspektywy domeny wiadomości są grupowane w \texttt{MessageThread}, co pozwala utrzymać kontekst rozmowy i ułatwia przegląd historii.
-
-\subsection{Utworzenie (lub pobranie) wątku rozmowy dla ogłoszenia}
-\begin{itemize}
-    \item Metoda HTTP: \texttt{POST}
-    \item Adres URL: \texttt{/api/v1/listings/\{listingId\}/threads}
-    \item Endpoint chroniony: tak (JWT)
-\end{itemize}
-
-\noindent\textbf{Reguły biznesowe:} jeśli wątek pomiędzy danym Lokatorem i Właścicielem już istnieje, system może zwrócić istniejący identyfikator wątku zamiast tworzyć nowy (idempotencja biznesowa).
-
 \begin{lstlisting}[style=http,caption={Żądanie HTTP — utworzenie wątku}]
 POST /api/v1/listings/c92f1c80-2d3a-4e5b-9a1f-8b2c3d4e5f6a/threads
 Authorization: Bearer <JWT>
@@ -1290,30 +1239,7 @@ Accept: application/json
 }
 \end{lstlisting}
 
-\subsection{Wysłanie wiadomości}
-\begin{itemize}
-    \item Metoda HTTP: \texttt{POST}
-    \item Adres URL: \texttt{/api/v1/threads/\{threadId\}/messages}
-    \item Endpoint chroniony: tak (JWT)
-\end{itemize}
-
-\begin{lstlisting}[style=json,caption={Ciało żądania — wysłanie wiadomości}]
-{
-  "content": "Dzień dobry! Czy pokój jest dostępny od listopada?",
-  "clientMessageId": "3d9f4c3c-2b0a-4a2f-8a9a-1a2b3c4d5e6f"
-}
-\end{lstlisting}
-
 \noindent\textbf{Uwagi komunikacyjne:} pole \texttt{clientMessageId} pozwala klientowi na deduplikację w przypadku ponowień (analogicznie do \texttt{Idempotency-Key} na poziomie HTTP).
-
-\subsection{Pobranie historii rozmowy}
-\begin{itemize}
-    \item Metoda HTTP: \texttt{GET}
-    \item Adres URL: \texttt{/api/v1/threads/\{threadId\}/messages?page=0\&size=50}
-    \item Endpoint chroniony: tak (JWT)
-\end{itemize}
-
-\noindent System zwraca listę wiadomości z metadanymi autora oraz znacznikami czasu, co umożliwia odtworzenie chronologii rozmowy.
 
 \section{Moderacja i zgłoszenia naruszeń}
 Moduł moderacji opiera się o obiekt \texttt{ViolationReport}, który reprezentuje „sprawę” w panelu administracyjnym. Zgłoszenie może dotyczyć ogłoszenia lub użytkownika.
