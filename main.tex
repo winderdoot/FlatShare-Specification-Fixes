@@ -778,9 +778,16 @@ Accept: application/json
   "firstName": "Jan",
   "lastName": "Kowalski",
   "email": "jan.kowalski@example.com",
-  "password": "jestemSobieWesołyJanek"
+  "password": "jestemSobieWesołyJanek",
+  "role": "LANDLORD"
 }
 \end{lstlisting}
+
+Pole \textit{role} przyjmuje następujące wartości:
+\begin{itemize}
+  \item \texttt{"LANDLORD"} - Właściciel
+  \item \texttt{"TENANT"} - Lokator
+\end{itemize}
 
 \subsection{Przykładowa odpowiedź — sukces}
 
@@ -797,7 +804,8 @@ Location: http://flatshareapp.example.com/users/123
     "id": 123,
     "firstName": "Jan",
     "lastName": "Kowalski",
-    "email": "jan.kowalski@example.com"
+    "email": "jan.kowalski@example.com",
+    "role": "LANDLORD"
   }
 }
 \end{lstlisting}
@@ -811,7 +819,56 @@ W przypadku nieudanej rejestracji żądanie zostaje odrzucone, a system zwraca o
 \end{lstlisting}
 
 %============================================%
+\section{Pobieranie danych użytkownika}
 
+\subsection{Opis endpointu}
+
+Służy do pobierania podstawowych informacji o użytkowniku - odzwierciedla zawartość nagłówka \textit{Location} w odpowiedzi endpointu rejestracji. W url nalezy wstawić id użytkownika.
+
+\begin{itemize}
+    \item Metoda HTTP: \texttt{GET}
+    \item Adres URL: \texttt{/api/v1/users/1234-1234-1234-1234}
+    \item Typ treści: \texttt{application/json}
+\end{itemize}
+
+\subsection{Przykładowe żądanie}
+
+\begin{lstlisting}[style=http,caption={Przykładowe żądanie rejestracji}]
+POST /api/v1/users/1234-1234-1234-1234
+Content-Type: application/json
+Accept: application/json
+\end{lstlisting}
+
+\subsection{Przykładowa odpowiedź — sukces}
+
+W przypadku poprawnego id, zwraca informacje o użytkowniku.
+
+\begin{lstlisting}[style=http,caption={Odpowiedź HTTP — sukces}]
+200 OK
+Content-Type: application/json
+
+{
+  "id": 123,
+  "firstName": "Jan",
+  "lastName": "Kowalski",
+  "email": "jan.kowalski@example.com",
+  "role": "LANDLORD"
+}
+\end{lstlisting}
+
+Pole \textit{role} przyjmuje następujące wartości:
+\begin{itemize}
+  \item \texttt{"LANDLORD"} - Właściciel
+  \item \texttt{"TENANT"} - Lokator
+\end{itemize}
+
+\subsection{Obsługa błędów}
+
+W przypadku złego id, zwracany jest NotFound.
+
+\begin{lstlisting}[style=http,caption={Odpowiedź HTTP — nieudana rejestracja}]
+404 Not Found
+\end{lstlisting}
 
 \section{Logowanie}
 
@@ -906,7 +963,7 @@ Jednakże, w praktyce potrzebny jest jeszcze sposób na odświeżenie sesji (tok
 \subsection{Opis endpointu}
 
 \begin{itemize}
-    \item Metoda HTTP: \texttt{}
+    \item Metoda HTTP: \texttt{PATCH}
     \item Adres URL: \texttt{/api/v1/sessions}
     \item Typ treści: \texttt{application/json}
     \item Endpoint chroniony: tak (JWT)
@@ -949,7 +1006,49 @@ W przypadku podania nieprawidłowych danych uwierzytelniających (błędny token
 \begin{lstlisting}[style=http,caption={Odpowiedź HTTP — błędna autoryzacja}]
 401 Unauthorized
 \end{lstlisting}
+%===================================%
+\section{Pobieranie informacji o sesji}
 
+\subsection{Opis endpointu}
+Endpoint ten jest dla formalizmu, aby nagłówek \textit{Location}
+przy tworzeniu sesji (Logowanie) miał sens.
+
+\begin{itemize}
+    \item Metoda HTTP: \texttt{GET}
+    \item Adres URL: \texttt{/api/v1/sessions}
+    \item Typ treści: \texttt{application/json}
+    \item Endpoint chroniony: tak (JWT)
+\end{itemize}
+
+\subsection{Przykładowe żądanie}
+
+\begin{lstlisting}[style=http,caption={Przykładowe żądanie logowania}]
+GET /api/v1/sessions/4bdb3f80-9ea8-49bb-91d5-591fff9e8815
+\end{lstlisting}
+
+\subsection{Przykładowa odpowiedź — sukces}
+
+\begin{lstlisting}[style=http,caption={Odpowiedź HTTP — sukces}]
+20O OK
+Content-Type: application/json
+
+\end{lstlisting}
+
+\begin{lstlisting}[style=json,caption={Ciało odpowiedzi — sukces}]
+{
+  "sessionId": 4bdb3f80-9ea8-49bb-91d5-591fff9e8815,
+  "userId": 425523-3424-2137-91d5-213769696
+}
+\end{lstlisting}
+
+\subsection{Obsługa błędów}
+
+W przypadku podania nieprawidłowych danych (użytkownik musi być właścicielem sesji aby móc wywołać tę metodę) uwierzytelniających (błędny token) żądanie zostaje odrzucone, a system zwraca odpowiedź:
+
+\begin{lstlisting}[style=http,caption={Odpowiedź HTTP — błędna autoryzacja}]
+401 Unauthorized
+\end{lstlisting}
+%=======================================%
 \subsection{Reset hasła}
 Reset hasła realizowany jest jako proces dwuetapowy, aby uniknąć ujawniania informacji o istnieniu konta oraz zapewnić kontrolę nad operacją zmiany hasła.
 Wariant ten odpowiada historii US-Sys2.
